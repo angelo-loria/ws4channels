@@ -1,0 +1,17 @@
+services:
+  ws4channels:
+    build: .
+    ports:
+      - "${STREAM_PORT:-9798}:${STREAM_PORT:-9798}"
+    environment:
+      - ZIP_CODE=${ZIP_CODE:-90210}
+      - WS4KP_HOST=${WS4KP_HOST:-localhost}
+      - WS4KP_PORT=${WS4KP_PORT:-8080}
+      - STREAM_PORT=${STREAM_PORT:-9798}
+      - FRAME_RATE=${FRAME_RATE:-10}
+      - ENABLE_HDHR=${ENABLE_HDHR:-false}
+      - HDHR_DEVICE_ID=${HDHR_DEVICE_ID:-A1B2C3D4}
+      - HDHR_DEVICE_AUTH=${HDHR_DEVICE_AUTH:-ws4channels}
+      - HDHR_CHANNEL_NUMBER=${HDHR_CHANNEL_NUMBER:-275}
+      - HDHR_CHANNEL_NAME=${HDHR_CHANNEL_NAME:-WeatherStar 4000}
+    restart: unless-stopped
