@@ -11,11 +11,11 @@ const app = express();
 
 const VERSION = "2.0"; // version 2.0 logging
 const ZIP_CODE = process.env.ZIP_CODE || "90210";
-// const WS4KP_HOST = process.env.WS4KP_HOST || "localhost";
-// const WS4KP_PORT = process.env.WS4KP_PORT || "8080";
+const WS4KP_HOST = process.env.WS4KP_HOST || "localhost";
+const WS4KP_PORT = process.env.WS4KP_PORT || "8080";
 const WS4KP_PERMALINK = process.env.PERMALINK || "localhost:8080"
 const STREAM_PORT = process.env.STREAM_PORT || "9798";
-// const WS4KP_URL = `http://${WS4KP_HOST}:${WS4KP_PORT}`;
+const WS4KP_URL = `http://${WS4KP_HOST}:${WS4KP_PORT}`;
 const HLS_SETUP_DELAY = 2000;
 const FRAME_RATE = process.env.FRAME_RATE || 10;
 const ENABLE_HDHR = process.env.ENABLE_HDHR?.toLowerCase() === "true";
@@ -161,7 +161,7 @@ async function startBrowser() {
     defaultViewport: null,
   });
   page = await browser.newPage();
-  await page.goto(`${WS4KP_PERMALINK}`, { waitUntil: "networkidle2", timeout: 30000 });
+  await page.goto(`${WS4KP_URL}`, { waitUntil: "networkidle2", timeout: 30000 });
   try {
     const zipInput = await page.waitForSelector(
       'input[placeholder="Zip or City, State"], input',
