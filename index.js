@@ -18,7 +18,6 @@ const HLS_SETUP_DELAY = 2000;
 const FRAME_RATE = process.env.FRAME_RATE || 10;
 const ENABLE_HDHR = process.env.ENABLE_HDHR?.toLowerCase() === "true";
 const HDHR_DEVICE_ID = process.env.HDHR_DEVICE_ID || "A1B2C3D4";
-const HDHR_DEVICE_AUTH = process.env.HDHR_DEVICE_AUTH || "ws4channels";
 const HDHR_CHANNEL_NUMBER = process.env.HDHR_CHANNEL_NUMBER || "275";
 const HDHR_CHANNEL_NAME = process.env.HDHR_CHANNEL_NAME || "WeatherStar 4000";
 
@@ -285,10 +284,9 @@ if (ENABLE_HDHR) {
       Manufacturer: "Silicondust",
       ModelNumber: "HDTC-2US",
       FirmwareName: "hdhomerun3_atsc",
-      FirmwareVersion: "20190621",
-      TunerCount: 1,
+      FirmwareVersion: "20200101",
+      TunerCount: 5,
       DeviceID: HDHR_DEVICE_ID,
-      DeviceAuth: HDHR_DEVICE_AUTH,
       BaseURL: baseUrl,
       LineupURL: `${baseUrl}/lineup.json`,
     });
