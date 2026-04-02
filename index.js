@@ -161,7 +161,7 @@ async function startBrowser() {
     defaultViewport: null,
   });
   page = await browser.newPage();
-  await page.goto(WS4KP_PERMALINK, { waitUntil: "networkidle2", timeout: 30000 });
+  await page.goto(`${WS4KP_PERMALINK}`, { waitUntil: "networkidle2", timeout: 30000 });
   try {
     const zipInput = await page.waitForSelector(
       'input[placeholder="Zip or City, State"], input',
