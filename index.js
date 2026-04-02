@@ -4,6 +4,7 @@ const ffmpeg = require("fluent-ffmpeg");
 const path = require("path");
 const fs = require("fs");
 const { PassThrough } = require("stream");
+const { spawn } = require("child_process");
 const os = require("os");
 
 const app = express();
@@ -274,6 +275,52 @@ app.get("/health", (req, res) => {
   res.status(isStreamReady ? 200 : 503).json({ ready: isStreamReady });
 });
 
+app.get("/stream.ts", (req, res) => {
+  if (!isStreamReady || !fs.existsSync(HLS_FILE)) {
+    res.status(503).send("Stream not ready");
+    return;
+  }
+
+  res.setHeader("Content-Type", "video/mp2t");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const tsProc = spawn("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-i",
+    HLS_FILE,
+    "-map",
+    "0:v:0",
+    "-map",
+    "0:a:0",
+    "-c",
+    "copy",
+    "-f",
+    "mpegts",
+    "pipe:1",
+  ]);
+
+  tsProc.stdout.pipe(res);
+
+  tsProc.stderr.on("data", (data) => {
+    const message = data.toString().trim();
+    if (message) console.warn("TS stream ffmpeg:", message);
+  });
+
+  const cleanup = () => {
+    if (!tsProc.killed) tsProc.kill("SIGKILL");
+  };
+
+  req.on("close", cleanup);
+  res.on("close", cleanup);
+  tsProc.on("error", cleanup);
+  tsProc.on("close", () => {
+    if (!res.writableEnded) res.end();
+  });
+});
+
 if (ENABLE_HDHR) {
   console.log(`HDHR emulation enabled — Device ID: ${HDHR_DEVICE_ID}`);
 
@@ -327,7 +374,7 @@ if (ENABLE_HDHR) {
       {
         GuideNumber: HDHR_CHANNEL_NUMBER,
         GuideName: HDHR_CHANNEL_NAME,
-        URL: `${baseUrl}/playlist.m3u`,
+        URL: `${baseUrl}/stream.ts`,
       },
     ]);
   });
