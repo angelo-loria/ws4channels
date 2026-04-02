@@ -192,15 +192,14 @@ async function startTranscoding() {
     .inputOptions([`-framerate ${FRAME_RATE}`])
     .input(path.join(__dirname, "audio_list.txt"))
     .inputOptions(["-f concat", "-safe 0", "-stream_loop -1"])
-    .inputOptions(["-hwaccel qsv", "-hwaccel_output_format qsv"])
-    .complexFilter(["[0:v]scale_qsv=1280:720[v]", "[1:a]volume=0.5[a]"])
+    .complexFilter(["[0:v]scale=1280:720[v]", "[1:a]volume=0.5[a]"])
     .outputOptions([
       "-map [v]",
       "-map [a]",
-      "-c:v h264_qsv",
+      "-c:v libx264",
       "-c:a aac",
       "-b:a 128k",
-      "-global_quality 25",
+      "-preset ultrafast",
       "-b:v 1000k",
       "-f hls",
       "-hls_time 2",

@@ -14,8 +14,6 @@ services:
       - HDHR_DEVICE_AUTH=${HDHR_DEVICE_AUTH:-ws4channels}
       - HDHR_CHANNEL_NUMBER=${HDHR_CHANNEL_NUMBER:-275}
       - HDHR_CHANNEL_NAME=${HDHR_CHANNEL_NAME:-WeatherStar 4000}
-    devices:
-      - /dev/dri:/dev/dri
     restart: unless-stopped
     deploy:
       resources:
