@@ -327,7 +327,7 @@ if (ENABLE_HDHR) {
       {
         GuideNumber: HDHR_CHANNEL_NUMBER,
         GuideName: HDHR_CHANNEL_NAME,
-        URL: `${baseUrl}/stream/stream.m3u8`,
+        URL: `${baseUrl}/playlist.m3u`,
       },
     ]);
   });
