@@ -233,14 +233,15 @@ async function startTranscoding() {
   //     isStreamReady = false;
   //   });
   ffmpegProc = ffmpeg()
+    .input(ffmpegStream)
+    .inputFormat("image2pipe")
+    // .inputOptions([`-framerate ${FRAME_RATE}`])
     .inputOptions([
+      `-framerate ${FRAME_RATE}`,
       "-hwaccel vaapi",
       "-hwaccel_device /dev/dri",
       "-hwaccel_output_format vaapi",
     ])
-    .input(ffmpegStream)
-    .inputFormat("image2pipe")
-    .inputOptions([`-framerate ${FRAME_RATE}`])
     .input(path.join(__dirname, "audio_list.txt"))
     .inputOptions(["-f concat", "-safe 0", "-stream_loop -1"])
     .complexFilter([
@@ -275,7 +276,7 @@ async function startTranscoding() {
       ffmpegStream = null;
       isStreamReady = false;
     });
-    
+
   captureInterval = setInterval(async () => {
     if (!ffmpegProc || !ffmpegStream || !page) return;
     try {
