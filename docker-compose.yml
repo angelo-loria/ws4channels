@@ -16,6 +16,8 @@ services:
       - HDHR_CHANNEL_NUMBER=${HDHR_CHANNEL_NUMBER:-275}
       - HDHR_CHANNEL_NAME=${HDHR_CHANNEL_NAME:-WeatherStar 4000}
     restart: unless-stopped
+    devices:
+      - /dev/dri:/dev/dri
     deploy:
       resources:
         limits:
