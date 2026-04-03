@@ -187,31 +187,74 @@ async function startTranscoding() {
   await startBrowser();
   createAudioInputFile();
   ffmpegStream = new PassThrough();
+  // ffmpegProc = ffmpeg()
+  //   .input(ffmpegStream)
+  //   .inputFormat("image2pipe")
+  //   .inputOptions([`-framerate ${FRAME_RATE}`])
+  //   .input(path.join(__dirname, "audio_list.txt"))
+  //   .inputOptions(["-f concat", "-safe 0", "-stream_loop -1"])
+  //   .complexFilter([
+  //     "[0:v]scale=1280:720:flags=fast_bilinear[v]",
+  //     "[1:a]volume=0.5[a]",
+  //   ])
+  //   .outputOptions([
+  //     "-map [v]",
+  //     "-map [a]",
+  //     "-c:v libx264",
+  //     "-c:a aac",
+  //     "-b:a 128k",
+  //     "-preset ultrafast",
+  //     "-tune zerolatency",
+  //     "-pix_fmt yuv420p",
+  //     "-b:v 1000k",
+  //     "-maxrate 1500k",
+  //     "-bufsize 2000k",
+  //     `-g ${FRAME_RATE * 2}`,
+  //     "-sc_threshold 0",
+  //     "-threads 0",
+  //     "-f hls",
+  //     "-hls_time 2",
+  //     "-hls_list_size 2",
+  //     "-hls_flags delete_segments",
+  //   ])
+  //   .output(HLS_FILE)
+  //   .on("start", () => {
+  //     console.log(`Started FFmpeg - Version ${VERSION}`);
+  //     setTimeout(() => (isStreamReady = true), HLS_SETUP_DELAY);
+  //   })
+  //   .on("error", async (err) => {
+  //     console.error("FFmpeg error:", err);
+  //     await stopTranscoding();
+  //     startTranscoding();
+  //   })
+  //   .on("end", () => {
+  //     ffmpegProc = null;
+  //     ffmpegStream = null;
+  //     isStreamReady = false;
+  //   });
   ffmpegProc = ffmpeg()
+    .inputOptions([
+      "-hwaccel vaapi",
+      "-hwaccel_device /dev/dri",
+      "-hwaccel_output_format vaapi",
+    ])
     .input(ffmpegStream)
     .inputFormat("image2pipe")
     .inputOptions([`-framerate ${FRAME_RATE}`])
     .input(path.join(__dirname, "audio_list.txt"))
     .inputOptions(["-f concat", "-safe 0", "-stream_loop -1"])
     .complexFilter([
-      "[0:v]scale=1280:720:flags=fast_bilinear[v]",
+      "[0:v]format=nv12,hwupload[v_hw]",
+      "[v_hw]scale_vaapi=1280:720[v]",
       "[1:a]volume=0.5[a]",
     ])
     .outputOptions([
       "-map [v]",
       "-map [a]",
-      "-c:v libx264",
+      "-c:v h264_vaapi",
       "-c:a aac",
       "-b:a 128k",
-      "-preset ultrafast",
-      "-tune zerolatency",
-      "-pix_fmt yuv420p",
       "-b:v 1000k",
-      "-maxrate 1500k",
-      "-bufsize 2000k",
-      `-g ${FRAME_RATE * 2}`,
-      "-sc_threshold 0",
-      "-threads 0",
       "-f hls",
       "-hls_time 2",
       "-hls_list_size 2",
@@ -219,7 +262,7 @@ async function startTranscoding() {
     ])
     .output(HLS_FILE)
     .on("start", () => {
-      console.log(`Started FFmpeg - Version ${VERSION}`);
+      console.log(`[Encoder] Using Intel VAAPI hardware encoding via /dev/dri`);
       setTimeout(() => (isStreamReady = true), HLS_SETUP_DELAY);
     })
     .on("error", async (err) => {
@@ -232,7 +275,7 @@ async function startTranscoding() {
       ffmpegStream = null;
       isStreamReady = false;
     });
-
+    
   captureInterval = setInterval(async () => {
     if (!ffmpegProc || !ffmpegStream || !page) return;
     try {
