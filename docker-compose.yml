@@ -7,6 +7,7 @@ services:
       - ZIP_CODE=${ZIP_CODE:-90210}
       - WS4KP_HOST=${WS4KP_HOST:-localhost}
       - WS4KP_PORT=${WS4KP_PORT:-8080}
+      - WS4KP_PERMALINK=${WS4KP_PERMALINK:-localhost:8080}
       - STREAM_PORT=${STREAM_PORT:-9798}
       - FRAME_RATE=${FRAME_RATE:-10}
       - ENABLE_HDHR=${ENABLE_HDHR:-false}

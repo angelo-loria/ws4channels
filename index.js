@@ -13,6 +13,7 @@ const VERSION = "2.0"; // version 2.0 logging
 const ZIP_CODE = process.env.ZIP_CODE || "90210";
 const WS4KP_HOST = process.env.WS4KP_HOST || "localhost";
 const WS4KP_PORT = process.env.WS4KP_PORT || "8080";
+const WS4KP_PERMALINK = process.env.PERMALINK || "localhost:8080"
 const STREAM_PORT = process.env.STREAM_PORT || "9798";
 const WS4KP_URL = `http://${WS4KP_HOST}:${WS4KP_PORT}`;
 const HLS_SETUP_DELAY = 2000;
