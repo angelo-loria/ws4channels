@@ -188,7 +188,6 @@ async function startTranscoding() {
   createAudioInputFile();
   ffmpegStream = new PassThrough();
   ffmpegProc = ffmpeg()
-    .inputOptions(['-hwaccel vaapi', '-hwaccel_device /dev/dri', '-hwaccel_output_format vaapi'])
     .input(ffmpegStream)
     .inputFormat("image2pipe")
     .inputOptions([`-framerate ${FRAME_RATE}`])
