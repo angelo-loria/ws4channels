@@ -10,6 +10,8 @@ services:
       - WS4KP_PERMALINK=${WS4KP_PERMALINK:-localhost:8080}
       - STREAM_PORT=${STREAM_PORT:-9798}
       - FRAME_RATE=${FRAME_RATE:-10}
+      - ENABLE_VAAPI=${ENABLE_VAAPI:-false}
+      - VAAPI_DEVICE=${VAAPI_DEVICE:-/dev/dri/renderD128}
       - ENABLE_HDHR=${ENABLE_HDHR:-false}
       - HDHR_DEVICE_ID=${HDHR_DEVICE_ID:-A1B2C3D4}
       - HDHR_DEVICE_AUTH=${HDHR_DEVICE_AUTH:-ws4channels}

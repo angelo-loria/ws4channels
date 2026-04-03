@@ -4,7 +4,7 @@ const ffmpeg = require("fluent-ffmpeg");
 const path = require("path");
 const fs = require("fs");
 const { PassThrough } = require("stream");
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 const os = require("os");
 
 const app = express();
@@ -18,6 +18,8 @@ const STREAM_PORT = process.env.STREAM_PORT || "9798";
 const WS4KP_URL = `http://${WS4KP_HOST}:${WS4KP_PORT}`;
 const HLS_SETUP_DELAY = 2000;
 const FRAME_RATE = process.env.FRAME_RATE || 10;
+const ENABLE_VAAPI = process.env.ENABLE_VAAPI?.toLowerCase() === "true";
+const VAAPI_DEVICE = process.env.VAAPI_DEVICE || "/dev/dri/renderD128";
 const ENABLE_HDHR = process.env.ENABLE_HDHR?.toLowerCase() === "true";
 const HDHR_DEVICE_ID = process.env.HDHR_DEVICE_ID || "A1B2C3D4";
 const HDHR_CHANNEL_NUMBER = process.env.HDHR_CHANNEL_NUMBER || "275";
@@ -41,6 +43,7 @@ let browser = null;
 let page = null;
 let captureInterval = null;
 let isStreamReady = false;
+let useVaapi = ENABLE_VAAPI;
 
 const waitFor = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -183,91 +186,117 @@ async function startBrowser() {
   await page.setViewport({ width: 1280, height: 720 });
 }
 
+function runVaapiPreflight() {
+  if (!ENABLE_VAAPI) return;
+
+  if (!fs.existsSync(VAAPI_DEVICE)) {
+    console.warn(
+      `[Preflight] VAAPI disabled: device not found at ${VAAPI_DEVICE}`,
+    );
+    useVaapi = false;
+    return;
+  }
+
+  const probe = spawnSync(
+    "ffmpeg",
+    [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-vaapi_device",
+      VAAPI_DEVICE,
+      "-f",
+      "lavfi",
+      "-i",
+      "color=size=16x16:rate=1:duration=0.1",
+      "-frames:v",
+      "1",
+      "-vf",
+      "format=nv12,hwupload",
+      "-f",
+      "null",
+      "-",
+    ],
+    { encoding: "utf8" },
+  );
+
+  if (probe.error || probe.status !== 0) {
+    const reason =
+      probe.error?.message ||
+      (probe.stderr || "ffmpeg VAAPI probe failed").trim();
+    console.warn(`[Preflight] VAAPI disabled: ${reason}`);
+    useVaapi = false;
+    return;
+  }
+
+  console.log(`[Preflight] VAAPI ready on ${VAAPI_DEVICE}`);
+}
+
 async function startTranscoding() {
   await startBrowser();
   createAudioInputFile();
+  const isVaapiEnabled = useVaapi;
+  const videoFilter = isVaapiEnabled
+    ? "[0:v]format=nv12,hwupload,scale_vaapi=1280:720[v]"
+    : "[0:v]scale=1280:720:flags=fast_bilinear[v]";
+  const videoOutputOptions = isVaapiEnabled
+    ? [
+        "-vaapi_device",
+        VAAPI_DEVICE,
+        "-c:v h264_vaapi",
+        "-b:v 1000k",
+        "-maxrate 1500k",
+        "-bufsize 2000k",
+      ]
+    : [
+        "-c:v libx264",
+        "-preset ultrafast",
+        "-tune zerolatency",
+        "-pix_fmt yuv420p",
+        "-b:v 1000k",
+        "-maxrate 1500k",
+        "-bufsize 2000k",
+      ];
+
   ffmpegStream = new PassThrough();
-  // ffmpegProc = ffmpeg()
-  //   .input(ffmpegStream)
-  //   .inputFormat("image2pipe")
-  //   .inputOptions([`-framerate ${FRAME_RATE}`])
-  //   .input(path.join(__dirname, "audio_list.txt"))
-  //   .inputOptions(["-f concat", "-safe 0", "-stream_loop -1"])
-  //   .complexFilter([
-  //     "[0:v]scale=1280:720:flags=fast_bilinear[v]",
-  //     "[1:a]volume=0.5[a]",
-  //   ])
-  //   .outputOptions([
-  //     "-map [v]",
-  //     "-map [a]",
-  //     "-c:v libx264",
-  //     "-c:a aac",
-  //     "-b:a 128k",
-  //     "-preset ultrafast",
-  //     "-tune zerolatency",
-  //     "-pix_fmt yuv420p",
-  //     "-b:v 1000k",
-  //     "-maxrate 1500k",
-  //     "-bufsize 2000k",
-  //     `-g ${FRAME_RATE * 2}`,
-  //     "-sc_threshold 0",
-  //     "-threads 0",
-  //     "-f hls",
-  //     "-hls_time 2",
-  //     "-hls_list_size 2",
-  //     "-hls_flags delete_segments",
-  //   ])
-  //   .output(HLS_FILE)
-  //   .on("start", () => {
-  //     console.log(`Started FFmpeg - Version ${VERSION}`);
-  //     setTimeout(() => (isStreamReady = true), HLS_SETUP_DELAY);
-  //   })
-  //   .on("error", async (err) => {
-  //     console.error("FFmpeg error:", err);
-  //     await stopTranscoding();
-  //     startTranscoding();
-  //   })
-  //   .on("end", () => {
-  //     ffmpegProc = null;
-  //     ffmpegStream = null;
-  //     isStreamReady = false;
-  //   });
   ffmpegProc = ffmpeg()
     .input(ffmpegStream)
     .inputFormat("image2pipe")
-    // .inputOptions([`-framerate ${FRAME_RATE}`])
-    .inputOptions([
-      `-framerate ${FRAME_RATE}`,
-      "-hwaccel vaapi",
-      "-hwaccel_device /dev/dri",
-      "-hwaccel_output_format vaapi",
-    ])
+    .inputOptions([`-framerate ${FRAME_RATE}`])
     .input(path.join(__dirname, "audio_list.txt"))
     .inputOptions(["-f concat", "-safe 0", "-stream_loop -1"])
-    .complexFilter([
-      "[0:v]format=nv12,hwupload[v_hw]",
-      "[v_hw]scale_vaapi=1280:720[v]",
-      "[1:a]volume=0.5[a]",
-    ])
+    .complexFilter([videoFilter, "[1:a]volume=0.5[a]"])
     .outputOptions([
       "-map [v]",
       "-map [a]",
-      "-c:v h264_vaapi",
       "-c:a aac",
       "-b:a 128k",
-      "-b:v 1000k",
+      ...videoOutputOptions,
+      `-g ${FRAME_RATE * 2}`,
+      "-sc_threshold 0",
+      "-threads 0",
       "-f hls",
       "-hls_time 2",
       "-hls_list_size 2",
       "-hls_flags delete_segments",
     ])
     .output(HLS_FILE)
-    .on("start", () => {
-      console.log(`[Encoder] Using Intel VAAPI hardware encoding via /dev/dri`);
+    .on("start", (cmd) => {
+      if (isVaapiEnabled)
+        console.log(`[Encoder] Using Intel VAAPI via ${VAAPI_DEVICE}`);
+      else console.log(`[Encoder] Using software encoding (libx264)`);
+      console.log(`Started FFmpeg - Version ${VERSION}`);
+      console.log(`FFmpeg command: ${cmd}`);
       setTimeout(() => (isStreamReady = true), HLS_SETUP_DELAY);
     })
     .on("error", async (err) => {
       console.error("FFmpeg error:", err);
+      if (isVaapiEnabled) {
+        console.warn(
+          "[Encoder] Disabling VAAPI after FFmpeg failure; retrying with software encoding",
+        );
+        useVaapi = false;
+      }
       await stopTranscoding();
       startTranscoding();
     })
@@ -442,6 +471,7 @@ console.log(
 
 app.listen(STREAM_PORT, async () => {
   console.log(`Streaming server running on port ${STREAM_PORT}`);
+  runVaapiPreflight();
   await startTranscoding();
 });
 
