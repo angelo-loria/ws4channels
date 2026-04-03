@@ -13,7 +13,7 @@ const VERSION = "2.0"; // version 2.0 logging
 const ZIP_CODE = process.env.ZIP_CODE || "90210";
 const WS4KP_HOST = process.env.WS4KP_HOST || "localhost";
 const WS4KP_PORT = process.env.WS4KP_PORT || "8080";
-const WS4KP_PERMALINK = process.env.PERMALINK || "localhost:8080"
+const WS4KP_PERMALINK = process.env.PERMALINK || "localhost:8080";
 const STREAM_PORT = process.env.STREAM_PORT || "9798";
 const WS4KP_URL = `http://${WS4KP_HOST}:${WS4KP_PORT}`;
 const HLS_SETUP_DELAY = 2000;
@@ -193,7 +193,10 @@ async function startTranscoding() {
     .inputOptions([`-framerate ${FRAME_RATE}`])
     .input(path.join(__dirname, "audio_list.txt"))
     .inputOptions(["-f concat", "-safe 0", "-stream_loop -1"])
-    .complexFilter(["[0:v]scale=1280:720[v]", "[1:a]volume=0.5[a]"])
+    .complexFilter([
+      "[0:v]scale=1280:720:flags=fast_bilinear[v]",
+      "[1:a]volume=0.5[a]",
+    ])
     .outputOptions([
       "-map [v]",
       "-map [a]",
@@ -201,7 +204,14 @@ async function startTranscoding() {
       "-c:a aac",
       "-b:a 128k",
       "-preset ultrafast",
+      "-tune zerolatency",
+      "-pix_fmt yuv420p",
       "-b:v 1000k",
+      "-maxrate 1500k",
+      "-bufsize 2000k",
+      `-g ${FRAME_RATE * 2}`,
+      "-sc_threshold 0",
+      "-threads 0",
       "-f hls",
       "-hls_time 2",
       "-hls_list_size 2",
