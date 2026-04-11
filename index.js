@@ -130,7 +130,7 @@ function generateXMLTV(host) {
 <!DOCTYPE tv SYSTEM "xmltv.dtd">
 <tv>
 <channel id="WS4000">
-<display-name>WeatherStar 4000</display-name>
+<display-name>WeatherStar 4000 - Minneapolis</display-name>
 <icon src="${baseUrl}/logo/ws4000.png" />
 </channel>`;
   for (let i = 0; i < 24; i++) {
