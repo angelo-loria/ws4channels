@@ -107,10 +107,11 @@ function createAudioInputFile() {
   }
 
   // Shuffle if requested
-  if (process.env.SHUFFLE_MUSIC?.toLowerCase() === "true") {
-    files = shuffleArray(files);
-    console.log("Shuffled music list based on SHUFFLE_MUSIC=true");
-  }
+  // if (process.env.SHUFFLE_MUSIC?.toLowerCase() === "true") {
+  // hard enabled
+  files = shuffleArray(files);
+  console.log("Shuffled music list based on SHUFFLE_MUSIC=true");
+  // }
 
   console.log(`Loaded ${files.length} music files`);
   const audioList = files
